@@ -52,6 +52,11 @@ void loop()
     if (!MQTT.connected()) {
       mqttReconnect();
     }
+    if(WiFi.status() != WL_CONNECTED){
+      setupWifi();
+    }
+
+
     MQTT.loop();
     if(readRFID()){
       MQTT.publish(TOP_PUB, card.c_str());
