@@ -10,11 +10,17 @@
 
 const char* mqtt_server = "iot.eclipse.org";
 
-const char* ssid = "Cavalcanti";
-const char* password = "18071995";
+
+// NEED TO CONFIGURE WIFI NETWORK
+const char* ssid = "Wifi Name";
+const char* password = "Wifi Password";
 
 WiFiClient espClient;
 PubSubClient MQTT(espClient);
+
+#define pin0 4
+#define pin1 0
+#define pin2 2
 
 
 #define SS_PIN D0
@@ -43,25 +49,34 @@ void setup()
   SPI.begin();
   delay(100);
   mfrc522.PCD_Init();   // Inicia MFRC522
-    
+  pinMode(pin0, OUTPUT);
+  pinMode(pin1, OUTPUT);
+  pinMode(pin2, OUTPUT);
+  turnOnLed(0);  
     
 }
 
 void loop()
 {
-    if (!MQTT.connected()) {
-      mqttReconnect();
-    }
     if(WiFi.status() != WL_CONNECTED){
+      turnOnLed(2);
       setupWifi();
+      turnOnLed(0);
     }
-
+    if (!MQTT.connected()) {
+      turnOnLed(2);
+      mqttReconnect();
+      turnOnLed(0);
+    }
+    
 
     MQTT.loop();
     if(readRFID()){
       MQTT.publish(TOP_PUB, card.c_str());
       Serial.println("Published...");
+      turnOnLed(1);
       delay(1000);
+      turnOnLed(0);
     }
 
 }
@@ -75,6 +90,7 @@ void subscribed(char* topic, byte* payload, unsigned int length) {
     Serial.print((char)payload[i]);
   }
   Serial.println();
+  turnOnLed(1);
   //Here to control de LED
 }
 // ***************** Connectiong to WiFi *****************
@@ -111,9 +127,9 @@ void mqttReconnect() {
     } else {
       Serial.print("Failed, rc= ");
       Serial.print(MQTT.state());
-      Serial.println(" trying again in 5 seconds");
+      Serial.println(" trying again in 4 seconds");
       // Wait 5 seconds before retrying
-      delay(5000);
+      delay(4000);
     }
   }
 }
@@ -142,3 +158,13 @@ char readRFID(){
     return 1;
 }
 
+void turnOnLed(int color){
+  // 0 -> Green
+  // 1 -> Blue
+  // 2 -> Red
+
+    digitalWrite(pin0, color == 0? HIGH: LOW);
+    digitalWrite(pin1, color == 1? HIGH: LOW);
+    digitalWrite(pin2, color == 2? HIGH: LOW);
+
+}
