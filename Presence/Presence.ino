@@ -12,15 +12,15 @@ const char* mqtt_server = "iot.eclipse.org";
 
 
 // NEED TO CONFIGURE WIFI NETWORK
-const char* ssid = "Wifi Name";
-const char* password = "Wifi Password";
+const char* ssid = "RoboBoy";
+const char* password = "lucas123";
 
 WiFiClient espClient;
 PubSubClient MQTT(espClient);
 
-#define pin0 4
-#define pin1 0
-#define pin2 2
+#define pin0 0
+#define pin1 2
+#define pin2 4
 
 
 #define SS_PIN D0
@@ -40,7 +40,11 @@ char readRFID();
 void setup()
 {
   Serial.begin(115200);
+  pinMode(pin0, OUTPUT);
+  pinMode(pin1, OUTPUT);
+  pinMode(pin2, OUTPUT);
 // Connecting to WiFi
+  turnOnLed(2); 
   setupWifi();
 // Starting MQTT
   MQTT.setServer(mqtt_server, 1883);
@@ -49,9 +53,6 @@ void setup()
   SPI.begin();
   delay(100);
   mfrc522.PCD_Init();   // Inicia MFRC522
-  pinMode(pin0, OUTPUT);
-  pinMode(pin1, OUTPUT);
-  pinMode(pin2, OUTPUT);
   turnOnLed(0);  
     
 }
@@ -72,17 +73,18 @@ void loop()
 
     MQTT.loop();
     if(readRFID()){
+      turnOnLed(3);
       MQTT.publish(TOP_PUB, card.c_str());
       Serial.println("Published...");
-      turnOnLed(1);
       delay(1000);
-      turnOnLed(0);
+      turnOnLed(1);
     }
 
 }
 // ============ FUCNTIONS =============
 // ***************** CallBack for MQTT *****************
 void subscribed(char* topic, byte* payload, unsigned int length) {
+  turnOnLed(1);
   Serial.print("Message arrived [ ");
   Serial.print(topic);
   Serial.print(" ]: ");
@@ -90,7 +92,8 @@ void subscribed(char* topic, byte* payload, unsigned int length) {
     Serial.print((char)payload[i]);
   }
   Serial.println();
-  turnOnLed(1);
+  if(payload[0] == 't')
+    turnOnLed(0);
   //Here to control de LED
 }
 // ***************** Connectiong to WiFi *****************
@@ -115,6 +118,7 @@ void mqttReconnect() {
   // Loop until we're reconnected
   while (!MQTT.connected()) {
     Serial.print("Attempting MQTT connection... ");
+    turnOnLed(2);
     // Create a random client ID
 
     // Attempt to connect
@@ -127,10 +131,15 @@ void mqttReconnect() {
     } else {
       Serial.print("Failed, rc= ");
       Serial.print(MQTT.state());
-      Serial.println(" trying again in 4 seconds");
+      Serial.println(" trying again in 2 seconds");
       // Wait 5 seconds before retrying
-      delay(4000);
+      delay(2500);
     }
+    while (WiFi.status() != WL_CONNECTED) {
+      delay(500);
+      Serial.print(".");
+    }
+    Serial.println();
   }
 }
 
@@ -163,8 +172,8 @@ void turnOnLed(int color){
   // 1 -> Blue
   // 2 -> Red
 
-    digitalWrite(pin0, color == 0? HIGH: LOW);
-    digitalWrite(pin1, color == 1? HIGH: LOW);
-    digitalWrite(pin2, color == 2? HIGH: LOW);
+    digitalWrite(pin0, (color == 0 || color == 3)? LOW: HIGH);
+    digitalWrite(pin1, (color == 1 || color == 3)? LOW: HIGH);
+    digitalWrite(pin2, color == 2? LOW: HIGH);    
 
 }
